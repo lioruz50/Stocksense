@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>StockSense Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@300;400;500&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07090d; --s1:#0d1017; --s2:#131720; --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.12); --gold:#c9a84c; --gold2:#e8c96d;
+  --green:#22d87a; --red:#f05c5c; --yellow:#f0b93a;
+  --text:#eef0f6; --sub:#8b92a8; --muted:#454d61;
+  --ff-disp:'Syne',sans-serif; --ff-mono:'DM Mono',monospace; --ff-body:'Heebo',sans-serif;
+  --r:12px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--ff-body);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(201,168,76,0.03) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(201,168,76,0.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 18px 60px;position:relative;z-index:1;}
+
+header{display:flex;align-items:center;justify-content:space-between;padding:24px 0 28px;border-bottom:1px solid var(--border);margin-bottom:32px;flex-wrap:wrap;gap:10px;}
+.logo-mark{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:9px;display:grid;place-items:center;font-size:18px;color:#07090d;font-weight:900;font-family:var(--ff-disp);box-shadow:0 4px 20px rgba(201,168,76,0.3);flex-shrink:0;}
+.logo-text{font-family:var(--ff-disp);font-size:1.55rem;font-weight:800;}
+.logo-text strong{color:var(--gold);}
+.logo-sub{font-family:var(--ff-mono);font-size:0.6rem;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;margin-top:2px;}
+.badge{font-family:var(--ff-mono);font-size:0.6rem;color:var(--green);border:1px solid rgba(34,216,122,0.3);border-radius:20px;padding:4px 10px;letter-spacing:1px;text-transform:uppercase;background:rgba(34,216,122,0.05);animation:pulseBadge 2s infinite;}
+@keyframes pulseBadge{0%,100%{opacity:1}50%{opacity:0.5}}
+
+.api-notice{background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:var(--r);padding:14px 18px;margin-bottom:20px;font-size:0.82rem;line-height:1.6;color:var(--sub);}
+.api-notice a{color:var(--gold);text-decoration:none;}
+.api-notice strong{color:var(--gold);}
+.api-key-row{display:flex;gap:8px;margin-top:10px;}
+.api-key-input{flex:1;background:var(--s1);border:1px solid var(--border);color:var(--text);font-family:var(--ff-mono);font-size:0.8rem;padding:8px 12px;border-radius:8px;outline:none;direction:ltr;}
+.api-key-input:focus{border-color:var(--gold);}
+.api-key-btn{background:var(--gold);color:#07090d;border:none;padding:0 16px;border-radius:8px;font-weight:700;font-size:0.8rem;cursor:pointer;}
+
+.search-section{margin-bottom:24px;}
+.search-row{display:flex;gap:10px;margin-bottom:14px;}
+.search-input{flex:1;background:var(--s1);border:1px solid var(--border);color:var(--text);font-family:var(--ff-mono);font-size:1rem;padding:14px 18px;border-radius:var(--r);outline:none;transition:all .25s;direction:ltr;caret-color:var(--gold);}
+.search-input::placeholder{color:var(--muted);}
+.search-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,0.1);}
+.search-btn{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#07090d;border:none;padding:0 26px;font-family:var(--ff-body);font-size:0.95rem;font-weight:700;border-radius:var(--r);cursor:pointer;transition:transform .15s,box-shadow .15s;white-space:nowrap;box-shadow:0 4px 20px rgba(201,168,76,0.25);}
+.search-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(201,168,76,0.4);}
+.search-btn:active{transform:scale(0.97);}
+.search-btn:disabled{opacity:0.5;transform:none;box-shadow:none;}
+.quick-picks{display:flex;gap:8px;flex-wrap:wrap;}
+.qb{background:var(--s2);border:1px solid var(--border);color:var(--sub);font-family:var(--ff-mono);font-size:0.72rem;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .2s;}
+.qb:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.05);}
+
+.error-box{display:none;background:rgba(240,92,92,0.08);border:1px solid rgba(240,92,92,0.3);color:var(--red);padding:14px 18px;border-radius:var(--r);margin-bottom:20px;font-size:0.88rem;line-height:1.6;}
+.error-box.on{display:block;}
+.loading-box{display:none;text-align:center;padding:60px 20px;}
+.loading-box.on{display:block;}
+.spinner{width:40px;height:40px;border:2.5px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 18px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:var(--ff-mono);font-size:0.8rem;color:var(--sub);}
+.loading-dots::after{content:'...';animation:dots 1.2s steps(4,end) infinite;}
+@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+
+.result{display:none;}
+.result.on{display:block;animation:fadeUp .45s cubic-bezier(.22,1,.36,1) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px;gap:20px;flex-wrap:wrap;}
+.stock-name{font-family:var(--ff-disp);font-size:1.7rem;font-weight:800;line-height:1.1;}
+.stock-sub{font-family:var(--ff-mono);font-size:0.72rem;color:var(--gold);margin-top:6px;letter-spacing:1px;}
+.price-block{text-align:left;direction:ltr;}
+.price-big{font-family:var(--ff-mono);font-size:2.2rem;font-weight:500;letter-spacing:-1px;}
+.price-change{font-family:var(--ff-mono);font-size:0.85rem;margin-top:4px;display:flex;align-items:center;gap:6px;justify-content:flex-end;}
+.sec-title{font-family:var(--ff-mono);font-size:0.62rem;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;display:flex;align-items:center;gap:12px;margin:32px 0 14px;}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.chart-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;height:270px;}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+.metric-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;transition:border-color .2s,transform .2s;position:relative;overflow:hidden;}
+.metric-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s;}
+.metric-card:hover::before{opacity:1;}
+.metric-label{font-family:var(--ff-mono);font-size:0.62rem;color:var(--muted);margin-bottom:8px;letter-spacing:0.5px;}
+.metric-value{font-family:var(--ff-mono);font-size:1.05rem;font-weight:500;}
+.metric-value.good{color:var(--green);}
+.metric-value.warn{color:var(--yellow);}
+.metric-value.bad{color:var(--red);}
+.ai-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:4px;}
+.ai-header{padding:16px 20px;background:linear-gradient(90deg,rgba(201,168,76,0.06),transparent);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.ai-pill{font-family:var(--ff-mono);font-size:0.6rem;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:20px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);}
+.ai-body{padding:20px;}
+.ai-text{font-size:0.95rem;line-height:1.75;color:var(--sub);margin-bottom:18px;white-space:pre-line;}
+.ai-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+.verdict-label{font-family:var(--ff-mono);font-size:0.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.verdict-value{font-size:1.1rem;font-weight:700;}
+.score-block{text-align:center;}
+.score-ring{width:72px;height:72px;border-radius:50%;border:3px solid var(--border);display:grid;place-items:center;position:relative;margin:0 auto 6px;}
+.score-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+.score-ring .track{fill:none;stroke:var(--border);stroke-width:3;}
+.score-ring .fill{fill:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:188.5;transition:stroke-dashoffset 1s ease;}
+.score-num{font-family:var(--ff-mono);font-size:1.3rem;font-weight:500;position:relative;}
+.score-label{font-family:var(--ff-mono);font-size:0.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.disclaimer{font-family:var(--ff-mono);font-size:0.6rem;color:var(--muted);text-align:center;margin-top:44px;padding-bottom:20px;letter-spacing:0.5px;line-height:1.8;}
+
+@media(max-width:480px){
+  .metric-grid{grid-template-columns:1fr 1fr;}
+  .stock-name{font-size:1.3rem;}
+  .price-big{font-size:1.7rem;}
+  header{flex-direction:column;align-items:flex-start;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo-mark">
+      <div class="logo-icon">S</div>
+      <div>
+        <div class="logo-text">Stock<strong>Sense</strong> Pro</div>
+        <div class="logo-sub">// Real-Time Fundamental Engine</div>
+      </div>
+    </div>
+    <div class="badge">● LIVE</div>
+  </header>
+
+  <div class="api-notice" id="api-notice">
+    <strong>⚙ הגדרה חד-פעמית:</strong> האפליקציה משתמשת ב-<a href="https://financialmodelingprep.com/register" target="_blank">Financial Modeling Prep API</a> (חינמי).
+    הירשם, קבל API key, והכנס אותו כאן:
+    <div class="api-key-row">
+      <input class="api-key-input" id="api-key-input" type="text" placeholder="הכנס API Key..." dir="ltr" autocomplete="off">
+      <button class="api-key-btn" onclick="saveKey()">שמור ▸</button>
+    </div>
+  </div>
+
+  <div class="search-section">
+    <div class="search-row">
+      <input class="search-input" id="ticker-input" type="text"
+        placeholder="הזן סימול: AAPL, TSLA, NVDA..."
+        spellcheck="false" autocomplete="off"
+        onkeydown="if(event.key==='Enter')go()">
+      <button class="search-btn" id="analyze-btn" onclick="go()">נתח ▸</button>
+    </div>
+    <div class="quick-picks">
+      <span style="font-family:var(--ff-mono);font-size:0.62rem;color:var(--muted);align-self:center;letter-spacing:1px;">מניות פופולריות:</span>
+      <button class="qb" onclick="qs('AAPL')">AAPL</button>
+      <button class="qb" onclick="qs('NVDA')">NVDA</button>
+      <button class="qb" onclick="qs('TSLA')">TSLA</button>
+      <button class="qb" onclick="qs('MSFT')">MSFT</button>
+      <button class="qb" onclick="qs('AMZN')">AMZN</button>
+      <button class="qb" onclick="qs('META')">META</button>
+      <button class="qb" onclick="qs('GOOGL')">GOOGL</button>
+    </div>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+  <div class="loading-box" id="loading-box">
+    <div class="spinner"></div>
+    <div class="loading-text">טוען נתוני שוק<span class="loading-dots"></span></div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="hero">
+      <div>
+        <div class="stock-name" id="r-name">--</div>
+        <div class="stock-sub" id="r-ticker">--</div>
+      </div>
+      <div class="price-block">
+        <div class="price-big" id="r-price">--</div>
+        <div class="price-change" id="r-change">--</div>
+      </div>
+    </div>
+
+    <div class="sec-title">// גרף מחיר – 30 ימים</div>
+    <div class="chart-wrap"><canvas id="price-chart"></canvas></div>
+
+    <div class="sec-title">// מדדים פונדמנטליים</div>
+    <div class="metric-grid" id="metric-grid"></div>
+
+    <div class="sec-title">// ניתוח AI</div>
+    <div class="ai-card">
+      <div class="ai-header">
+        <div class="ai-pill">Fundamental Analysis</div>
+        <div style="font-family:var(--ff-mono);font-size:0.65rem;color:var(--muted);margin-right:auto;" id="r-for"></div>
+      </div>
+      <div class="ai-body">
+        <div class="ai-text" id="r-analysis">--</div>
+        <div class="ai-footer">
+          <div>
+            <div class="verdict-label">המלצה</div>
+            <div class="verdict-value" id="r-verdict">--</div>
+          </div>
+          <div>
+            <div class="verdict-label">פוטנציאל</div>
+            <div class="verdict-value" id="r-upside">--</div>
+          </div>
+          <div class="score-block">
+            <div class="score-ring">
+              <svg viewBox="0 0 72 72">
+                <circle class="track" cx="36" cy="36" r="30"/>
+                <circle class="fill" id="score-arc" cx="36" cy="36" r="30" stroke-dashoffset="188.5"/>
+              </svg>
+              <div class="score-num" id="r-score">--</div>
+            </div>
+            <div class="score-label">Score / 100</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      נתונים: Financial Modeling Prep API · ניתוח אלגוריתמי מובנה<br>
+      אינו מהווה ייעוץ השקעות מוסדר · לצרכי מידע בלבד
+    </div>
+  </div>
+
+</div>
+<script>
+const DEFAULT_API_KEY = 'demo';
+let chartInstance = null;
+let FMP_KEY = localStorage.getItem('fmp_key') || DEFAULT_API_KEY;
+
+window.onload = () => {
+  if (FMP_KEY && FMP_KEY !== 'demo') {
+    document.getElementById('api-notice').style.display = 'none';
+  }
+};
+
+function saveKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k) return;
+  FMP_KEY = k;
+  localStorage.setItem('fmp_key', k);
+  document.getElementById('api-notice').style.display = 'none';
+  showInfo('✓ API Key נשמר בהצלחה');
+}
+
+function showInfo(msg) {
+  const e = document.getElementById('error-box');
+  e.style.color = 'var(--green)';
+  e.style.borderColor = 'rgba(34,216,122,0.3)';
+  e.style.background = 'rgba(34,216,122,0.05)';
+  e.innerHTML = msg;
+  e.classList.add('on');
+  setTimeout(() => e.classList.remove('on'), 3000);
+}
+
+function qs(t) { document.getElementById('ticker-input').value = t; go(); }
+
+function setState(s) {
+  document.getElementById('loading-box').classList.toggle('on', s === 'loading');
+  document.getElementById('result').classList.toggle('on', s === 'result');
+  if (s !== 'error') {
+    const eb = document.getElementById('error-box');
+    eb.classList.remove('on');
+    eb.style.color = '';
+    eb.style.borderColor = '';
+    eb.style.background = '';
+  }
+  document.getElementById('analyze-btn').disabled = s === 'loading';
+}
+
+function showError(msg) {
+  const e = document.getElementById('error-box');
+  e.style.color = '';
+  e.style.borderColor = '';
+  e.style.background = '';
+  e.innerHTML = '⚠ ' + msg;
+  e.classList.add('on');
+  setState('error');
+}
+
+async function fmpFetch(path) {
+  const sep = path.includes('?') ? '&' : '?';
+  const url = `https://financialmodelingprep.com/api${path}${sep}apikey=${FMP_KEY}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}
+
+async function go() {
+  const raw = document.getElementById('ticker-input').value.trim().toUpperCase().replace(/[^A-Z.^-]/g, '');
+  if (!raw) return;
+
+  if (!FMP_KEY || FMP_KEY === 'demo') {
+    showError('יש להכניס API Key תחילה. ההרשמה ב-financialmodelingprep.com חינמית.');
+    return;
+  }
+
+  setState('loading');
+
+  try {
+    const [histData, profileData, ratiosData, incomeData] = await Promise.all([
+      fmpFetch(`/v3/historical-price-full/${raw}?timeseries=30`),
+      fmpFetch(`/v3/profile/${raw}`),
+      fmpFetch(`/v3/ratios-ttm/${raw}`),
+      fmpFetch(`/v3/income-statement/${raw}?limit=2`)
+    ]);
+
+    if (!profileData?.[0]) throw new Error(`לא נמצא סימול "${raw}". בדוק שזה סימול NYSE/NASDAQ תקין.`);
+
+    renderAll(raw, histData, profileData[0], ratiosData?.[0] || {}, incomeData || []);
+    setState('result');
+
+  } catch (e) {
+    console.error(e);
+    if (e.message.includes('401') || e.message.includes('403')) {
+      showError('API Key שגוי או פג תוקף. בדוק את ה-Key שלך.');
+    } else if (e.message.includes('429')) {
+      showError('חריגת מכסה יומית (250 בקשות ביום בחשבון חינמי). נסה מחר.');
+    } else {
+      showError(e.message || 'שגיאה לא צפויה. נסה שוב.');
+    }
+  }
+}
+
+function renderAll(ticker, hist, profile, ratios, income) {
+  document.getElementById('r-name').textContent   = profile.companyName || ticker;
+  document.getElementById('r-ticker').textContent = `${ticker} · ${profile.exchangeShortName || ''} · ${profile.currency || 'USD'}`;
+  document.getElementById('r-for').textContent    = 'מנותח: ' + ticker;
+
+  const price  = profile.price || 0;
+  const change = profile.changes || 0;
+  const pct    = price ? (change / (price - change) * 100) : 0;
+  const curSym = profile.currency === 'ILS' ? '₪' : profile.currency === 'EUR' ? '€' : '$';
+
+  document.getElementById('r-price').textContent = curSym + price.toFixed(2);
+  const chEl = document.getElementById('r-change');
+  chEl.innerHTML = `<span style="color:${change >= 0 ? 'var(--green)' : 'var(--red)'}">
+    ${change >= 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(2)}% (${change >= 0 ? '+' : ''}${change.toFixed(2)})
+  </span>`;
+
+  renderChart(hist, change >= 0);
+
+  const pe  = ratios.peRatioTTM;
+  const pb  = ratios.priceToBookRatioTTM;
+  const ps  = ratios.priceToSalesRatioTTM;
+  const roe = ratios.returnOnEquityTTM;
+  const roa = ratios.returnOnAssetsTTM;
+  const pm  = ratios.netProfitMarginTTM;
+  const gm  = ratios.grossProfitMarginTTM;
+  const d2e = ratios.debtEquityRatioTTM;
+  const cr  = ratios.currentRatioTTM;
+  const beta   = profile.beta;
+  const mcap   = profile.mktCap;
+  const target = profile.dcf;
+  const upside = (target && price) ? ((target - price) / price * 100) : null;
+
+  let revGr = null;
+  if (income.length >= 2) {
+    const r1 = income[0]?.revenue;
+    const r2 = income[1]?.revenue;
+    if (r1 && r2 && r2 !== 0) revGr = (r1 - r2) / Math.abs(r2);
+  }
+
+  function f(n, d = 2)  { return n == null || isNaN(n) ? 'N/A' : Number(n).toFixed(d); }
+  function fp(n)         { return n == null || isNaN(n) ? 'N/A' : (n * 100).toFixed(1) + '%'; }
+  function fm(n) {
+    if (n == null || isNaN(n)) return 'N/A';
+    if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+    if (Math.abs(n) >= 1e9)  return (n / 1e9).toFixed(2) + 'B';
+    if (Math.abs(n) >= 1e6)  return (n / 1e6).toFixed(2) + 'M';
+    return n.toFixed(2);
+  }
+  function cc(v, g, b, inv = false) {
+    if (v == null || isNaN(v)) return '';
+    return (inv ? v < g : v > g) ? 'good' : (inv ? v > b : v < b) ? 'bad' : 'warn';
+  }
+
+  const metrics = [
+    { l: 'P/E Ratio',         v: f(pe, 1),   cls: cc(pe, 15, 35, true) },
+    { l: 'P/B (Price/Book)',  v: f(pb, 2),   cls: cc(pb, 1, 6, true) },
+    { l: 'P/S (Price/Sales)', v: f(ps, 2),   cls: '' },
+    { l: 'שווי שוק',          v: fm(mcap),   cls: '' },
+    { l: 'Beta',              v: f(beta, 2), cls: beta && beta > 1.5 ? 'warn' : '' },
+    { l: 'שולי רווח גולמי',   v: fp(gm),     cls: cc(gm, 0.4, 0.2) },
+    { l: 'שולי רווח נקי',     v: fp(pm),     cls: cc(pm, 0.15, 0.05) },
+    { l: 'ROE',               v: fp(roe),    cls: cc(roe, 0.15, 0.05) },
+    { l: 'ROA',               v: fp(roa),    cls: cc(roa, 0.08, 0.02) },
+    { l: 'צמיחת הכנסות',     v: fp(revGr),  cls: cc(revGr, 0.1, 0) },
+    { l: 'חוב / הון (D/E)',   v: f(d2e, 2),  cls: cc(d2e, 0.5, 1.5, true) },
+    { l: 'Current Ratio',     v: f(cr, 2),   cls: cc(cr, 1.5, 1.0) },
+    { l: 'DCF שווי הוגן',     v: target ? curSym + f(target, 2) : 'N/A', cls: upside != null ? (upside > 15 ? 'good' : upside < -5 ? 'bad' : 'warn') : '' },
+    { l: 'פוטנציאל DCF',      v: upside != null ? (upside > 0 ? '+' : '') + upside.toFixed(1) + '%' : 'N/A', cls: upside != null ? (upside > 15 ? 'good' : upside < -5 ? 'bad' : 'warn') : '' },
+    { l: 'סקטור',             v: profile.sector   || 'N/A', cls: '' },
+    { l: 'ענף',               v: profile.industry || 'N/A', cls: '' },
+  ];
+
+  document.getElementById('metric-grid').innerHTML = metrics.map(m => `
+    <div class="metric-card">
+      <div class="metric-label">${m.l}</div>
+      <div class="metric-value ${m.cls}" title="${m.v}">${m.v.length > 14 ? m.v.substring(0, 13) + '…' : m.v}</div>
+    </div>
+  `).join('');
+
+  renderVerdict(ratios, profile, upside, revGr, curSym);
+}
+
+function renderChart(hist, isPos) {
+  const ctx = document.getElementById('price-chart').getContext('2d');
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  const raw = (hist?.historical || []).slice().reverse().slice(-30);
+  if (!raw.length) return;
+
+  const labels = raw.map(d => d.date.slice(5));
+  const closes = raw.map(d => d.close);
+  const minC   = Math.min(...closes);
+  const maxC   = Math.max(...closes);
+  const pad    = (maxC - minC) * 0.1 || 1;
+
+  const color = isPos ? '#22d87a' : '#f05c5c';
+  const grad  = ctx.createLinearGradient(0, 0, 0, 250);
+  grad.addColorStop(0, isPos ? 'rgba(34,216,122,0.2)' : 'rgba(240,92,92,0.2)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: closes, borderColor: color, borderWidth: 2,
+        pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: color,
+        fill: true, backgroundColor: grad, tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0d1017', borderColor: 'rgba(255,255,255,0.08)',
+          borderWidth: 1, titleColor: '#8b92a8', bodyColor: '#eef0f6',
+          bodyFont: { family: "'DM Mono',monospace" },
+          callbacks: { label: c => ' ' + c.parsed.y.toFixed(2) }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#454d61', font: { size: 10 }, maxTicksLimit: 8 } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, min: minC - pad, max: maxC + pad,
+             ticks: { color: '#8b92a8', font: { size: 10 }, callback: v => v.toFixed(0) } }
+      }
+    }
+  });
+}
+
+function renderVerdict(ratios, profile, upside, revGr) {
+  let score = 50;
+  const pm  = ratios.netProfitMarginTTM;
+  const roe = ratios.returnOnEquityTTM;
+  const cr  = ratios.currentRatioTTM;
+  const d2e = ratios.debtEquityRatioTTM;
+  const pe  = ratios.peRatioTTM;
+
+  if (pm  != null && pm  > 0.15) score += 10;
+  if (pm  != null && pm  > 0.25) score += 5;
+  if (roe != null && roe > 0.15) score += 10;
+  if (revGr != null && revGr > 0.1) score += 10;
+  if (revGr != null && revGr > 0.2) score += 5;
+  if (cr  != null && cr  > 1.5)  score += 8;
+  if (d2e != null && d2e < 0.5)  score += 7;
+  if (pe  != null && pe  > 0 && pe < 20) score += 8;
+  if (upside != null && upside > 15)  score += 10;
+  if (upside != null && upside < -10) score -= 10;
+
+  score = Math.min(98, Math.max(5, score));
+
+  const verdict = score >= 68 ? 'BUY' : score >= 42 ? 'HOLD' : 'SELL';
+  const color   = score >= 68 ? 'var(--green)' : score >= 42 ? 'var(--yellow)' : 'var(--red)';
+
+  document.getElementById('r-score').textContent  = score;
+  document.getElementById('r-score').style.color  = color;
+  const vEl = document.getElementById('r-verdict');
+  vEl.textContent = verdict;
+  vEl.style.color = color;
+
+  const uEl = document.getElementById('r-upside');
+  if (upside != null) {
+    uEl.textContent = (upside > 0 ? '+' : '') + upside.toFixed(1) + '%';
+    uEl.style.color = upside > 15 ? 'var(--green)' : upside < -5 ? 'var(--red)' : 'var(--yellow)';
+  } else {
+    uEl.textContent = 'N/A';
+  }
+
+  const arc = document.getElementById('score-arc');
+  arc.style.stroke = color;
+  arc.style.strokeDashoffset = 188.5 - (188.5 * score / 100);
+
+  const lines = [];
+  if (pe != null && pe > 0) {
+    lines.push(pe < 15
+      ? `מכפיל הרווח (P/E=${pe.toFixed(1)}) נמוך יחסית לשוק – עשוי להצביע על תמחור נוח.`
+      : pe < 30
+      ? `מכפיל הרווח (P/E=${pe.toFixed(1)}) נמצא בטווח הסביר לשוק.`
+      : `מכפיל הרווח (P/E=${pe.toFixed(1)}) גבוה – השוק מתמחר ציפיות צמיחה משמעותיות.`);
+  }
+  if (pm != null) {
+    lines.push(pm > 0.2
+      ? `שולי הרווח הנקי (${(pm * 100).toFixed(1)}%) גבוהים ומעידים על יעילות תפעולית מצוינת.`
+      : pm > 0.05
+      ? `שולי הרווח הנקי (${(pm * 100).toFixed(1)}%) סבירים.`
+      : `שולי הרווח הנקי (${(pm * 100).toFixed(1)}%) נמוכים – יש לבחון את מבנה העלויות.`);
+  }
+  if (revGr != null) {
+    lines.push(revGr > 0.15
+      ? `צמיחת ההכנסות (${(revGr * 100).toFixed(1)}%) חזקה – החברה מרחיבה את פעילותה.`
+      : revGr > 0
+      ? `צמיחת הכנסות מתונה (${(revGr * 100).toFixed(1)}%).`
+      : `ירידה בהכנסות (${(revGr * 100).toFixed(1)}%) – גורם לניטור.`);
+  }
+  if (upside != null) {
+    lines.push(upside > 20
+      ? `לפי מודל ה-DCF, המניה נסחרת בדיסקאונט משמעותי של ${upside.toFixed(1)}% מהשווי ההוגן.`
+      : upside > 0
+      ? `מודל DCF מצביע על פוטנציאל עלייה מתון של ${upside.toFixed(1)}%.`
+      : `לפי DCF, המניה נסחרת מעל השווי ההוגן ב-${Math.abs(upside).toFixed(1)}%.`);
+  }
+  lines.push(verdict === 'BUY'
+    ? `סיכום: יסודות חזקים תומכים בעמדת השקעה חיובית.`
+    : verdict === 'SELL'
+    ? `סיכום: הנתונים מצביעים על זהירות – שקול צמצום חשיפה.`
+    : `סיכום: תמונה מעורבת – מומלץ להמתין לנתונים נוספים לפני פעולה.`);
+
+  document.getElementById('r-analysis').textContent = lines.join('\n\n');
+}
+</script>
+</body>
+</html>
